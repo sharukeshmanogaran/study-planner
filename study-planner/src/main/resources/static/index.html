@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Placement & Study Planner</title>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background: #0f172a; color: #f8fafc; margin: 0; padding: 30px 15px; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 720px; background: #1e293b; padding: 28px; border-radius: 14px; box-shadow: 0 10px 25px rgba(0,0,0,0.4); }
+        h1 { margin: 0 0 6px; font-size: 24px; color: #38bdf8; }
+        p.subtitle { margin: 0 0 22px; color: #94a3b8; font-size: 14px; }
+        .form-row { display: flex; gap: 10px; margin-bottom: 22px; flex-wrap: wrap; }
+        input, select { padding: 11px 14px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 14px; }
+        input { flex: 1; min-width: 160px; }
+        button.add-btn { background: #0284c7; color: white; border: none; padding: 11px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+        button.add-btn:hover { background: #0369a1; }
+        .task-card { background: #0f172a; border: 1px solid #334155; padding: 14px 16px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .task-card.done { opacity: 0.55; text-decoration: line-through; }
+        .badge { padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; margin-left: 8px; }
+        .High { background: #7f1d1d; color: #fca5a5; }
+        .Medium { background: #78350f; color: #fcd34d; }
+        .Low { background: #14532d; color: #86efac; }
+        .actions button { margin-left: 6px; padding: 6px 12px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; }
+        .toggle-btn { background: #10b981; color: #064e3b; font-weight: 600; }
+        .del-btn { background: #ef4444; color: white; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Placement & Study Planner</h1>
+    <p class="subtitle">Full-Stack Spring Boot + REST API + H2 Database App</p>
+
+    <div class="form-row">
+        <input type="text" id="subject" placeholder="Subject (e.g., Java, DSA, DBMS)">
+        <input type="text" id="topic" placeholder="Topic (e.g., HashMap Internals)">
+        <select id="priority">
+            <option value="High">High</option>
+            <option value="Medium" selected>Medium</option>
+            <option value="Low">Low</option>
+        </select>
+        <button class="add-btn" onclick="addTask()">+ Add Task</button>
+    </div>
+
+    <div id="taskList"></div>
+</div>
+
+<script>
+    const API = '/api/tasks';
+
+    async function loadTasks() {
+        const res = await fetch(API);
+        const tasks = await res.json();
+        const list = document.getElementById('taskList');
+        list.innerHTML = tasks.length === 0 ? '<p style="color:#64748b;">No study tasks yet. Add one above!</p>' : '';
+        tasks.forEach(t => {
+            list.innerHTML += `
+                <div class="task-card ${t.completed ? 'done' : ''}">
+                    <div>
+                        <strong>${t.subject}</strong>: ${t.topic}
+                        <span class="badge ${t.priority}">${t.priority}</span>
+                    </div>
+                    <div class="actions">
+                        <button class="toggle-btn" onclick="toggleTask(${t.id})">${t.completed ? 'Undo' : 'Done'}</button>
+                        <button class="del-btn" onclick="deleteTask(${t.id})">Delete</button>
+                    </div>
+                </div>`;
+        });
+    }
+
+    async function addTask() {
+        const subject = document.getElementById('subject').value.trim();
+        const topic = document.getElementById('topic').value.trim();
+        const priority = document.getElementById('priority').value;
+        if (!subject || !topic) return alert('Enter both Subject and Topic!');
+
+        await fetch(API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ subject, topic, priority })
+        });
+        document.getElementById('subject').value = '';
+        document.getElementById('topic').value = '';
+        loadTasks();
+    }
+
+    async function toggleTask(id) {
+        await fetch(`${API}/${id}/toggle`, { method: 'PUT' });
+        loadTasks();
+    }
+
+    async function deleteTask(id) {
+        await fetch(`${API}/${id}`, { method: 'DELETE' });
+        loadTasks();
+    }
+
+    loadTasks();
+</script>
+</body>
+</html>
